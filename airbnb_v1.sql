@@ -59,3 +59,45 @@ SELECT id,property_type,host_location,room_type,latitude,longitude,
 min(price) min_price,max(review_scores_rating) max_rating,COUNT(number_of_reviews) no_of_revs FROM CTE_TABLE
 group by id,property_type,host_location,room_type,latitude,longitude
 order by max_rating desc
+
+
+/*
+select SUM(COALESCE(TRY_PARSE(substring(price,2,LEN(price)) AS INT),0)) AS PRICE,HOST_ID
+--TIRED SEVERAL MEATHODS TO CONVERT TO STRING
+/*TRY_CONVERT(INT,substring(price,2,LEN(price)))
+cast(cast(substring(price,2,LEN(price)) as numeric(19,4)) as int)  as price
+sum(coalesce(cast(substring(cal.price,2,len(cal.price)) as float),0))
+*/
+From protifolio_project..listings_details
+GROUP BY HOST_ID;
+*/
+
+--created CTE for max price
+
+with CTE_max(listing_id,date,available,price,host_id,host_name,host_neighbourhood,
+host_identity_verified,country,latitude,longitude) AS(
+select cal.listing_id,cast(cal.date as date) date,cal.available,
+COALESCE(TRY_PARSE(substring(cal.price,2,LEN(cal.price)) AS INT),0) AS price,
+ld.host_id,ld.host_name,ld.host_neighbourhood,
+ld.host_identity_verified,ld.country,ld.latitude,ld.longitude
+from protifolio_project..calendar cal
+join protifolio_project..listings_details ld on cal.listing_id=ld.id
+)
+select listing_id,MAX(price) over (partition by listing_id) max_price,price
+from CTE_max;
+
+-- Grouping and finding sumof price for id 
+
+select cal.listing_id,
+--case when cal.price is NULL then '0'
+--else cal.price end as price,
+--sum(coalesce(cast(substring(cal.price,2,len(cal.price)) as float),0)) price,
+ld.host_id,ld.host_name,ld.host_neighbourhood,
+ld.host_identity_verified,ld.country,
+SUM(COALESCE(TRY_PARSE(substring(cal.price,2,LEN(cal.price)) AS INT),0)) AS SUM_PRICE
+from protifolio_project..calendar cal
+join protifolio_project..listings_details ld on cal.listing_id=ld.id
+group by cal.listing_id,
+--cal.price,
+ld.host_id,ld.host_name,ld.host_neighbourhood,
+ld.host_identity_verified,ld.country;
